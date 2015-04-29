@@ -1,0 +1,167 @@
+Setting up a Tor Hidden Service on Debian Tutorial:
+
+Some tutorials to read first before you read mine:
+
+http://tech.tiq.cc/2012/08/how-to-set-up-a-hidden-service-in-the-tor-onion-network-with-lighttpd-and-php-on-linuxdebian/
+
+http://www.devtome.com/doku.php?id=create_your_own_hidden_site_using_nginx_and_tor
+
+https://www.debian.org/doc/manuals/securing-debian-howto/ch-automatic-harden.en.html
+
+https://medium.com/@ajphillips/how-to-create-your-own-tor-hidden-service-436bece8602f
+
+We want to be able to connect to the machine via ssh
+
+    # apt-get install openssh-server
+
+    You can now ssh into the vm and work from there.
+
+
+
+     $ ssh netscape101@192.168.122.74
+    The authenticity of host '192.168.122.74 (192.168.122.74)' can't be established.
+    ECDSA key fingerprint is 50:80:71:d0:b0:c5:f8:22:14:eb:5c:98:73:f5:86:06.
+    Are you sure you want to continue connecting (yes/no)? yes
+    Warning: Permanently added '192.168.122.74' (ECDSA) to the list of known hosts.
+     $ netscape101@192.168.122.74's password: 
+     Linux debianbox 3.2.0-4-686-pae #1 SMP Debian 3.2.65-1+deb7u2 i686
+
+     The programs included with the Debian GNU/Linux system are free software;
+     the exact distribution terms for each program are described in the
+     individual files in /usr/share/doc/*/copyright.
+
+     Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+     permitted by applicable law.
+     netscape101@debianbox:~$ 
+
+
+     From here on I am assuming you are logged in over ssh on your virtual machine.
+
+
+
+     Create hidden service directory and give appropirate permissions:
+
+
+
+     netscape101@debianbox:~$ su
+     Password: 
+     root@debianbox:/home/netscape101# apt-get install tor     
+     Reading package lists... Done
+     Building dependency tree       
+     Reading state information... Done
+     The following extra packages will be installed:
+       tor-geoipdb torsocks
+     Suggested packages:
+       mixmaster xul-ext-torbutton socat tor-arm polipo privoxy apparmor-utils
+     The following NEW packages will be installed:
+       tor tor-geoipdb torsocks
+     0 upgraded, 3 newly installed, 0 to remove and 30 not upgraded.
+     Need to get 2,464 kB of archives.
+     After this operation, 6,605 kB of additional disk space will be used.
+     Do you want to continue [Y/n]? y
+     Get:1 http://http.debian.net/debian/ wheezy/main tor i386 0.2.4.24-1 [1,308 kB]
+     Get:2 http://http.debian.net/debian/ wheezy/main torsocks i386 1.2-3 [77.1      kB]                                                                                                                            
+     Get:3 http://http.debian.net/debian/ wheezy/main tor-geoipdb all 0.2.4.24-1 [1,080      kB]                                                                                                                    
+     Fetched 2,464 kB in 30s (81.1      kB/s)                                                                                                                                                                       
+     Selecting previously unselected package tor.
+     (Reading database ... 26456 files and directories currently installed.)
+     Unpacking tor (from .../tor_0.2.4.24-1_i386.deb) ...
+     Selecting previously unselected package torsocks.
+     Unpacking torsocks (from .../torsocks_1.2-3_i386.deb) ...
+     Selecting previously unselected package tor-geoipdb.
+     Unpacking tor-geoipdb (from .../tor-geoipdb_0.2.4.24-1_all.deb) ...
+     Processing triggers for man-db ...
+     Setting up tor (0.2.4.24-1) ...
+     Something or somebody made /var/lib/tor disappear.
+     Creating one for you again.
+     Something or somebody made /var/log/tor disappear.
+     Creating one for you again.
+     [ ok ] Starting tor daemon...done.
+     Setting up torsocks (1.2-3) ...
+     Setting up tor-geoipdb (0.2.4.24-1) ...
+     root@debianbox:/home/netscape101# 
+
+     # mkdir /var/lib/tor/hidden_service
+
+     # chown debian-tor:debian-tor /var/lib/tor/hidden_service
+
+     # chmod 0700 /var/lib/tor/hidden_service
+
+
+     Now add this to tor config file
+
+     # vim /etc/tor/torrc
+
+     # This is /etc/tor/torrc
+     HiddenServiceDir /var/lib/tor/hidden_service
+     HiddenServicePort 80 127.0.0.1:8000
+
+
+     root@debianbox:/home/netscape101# vi /etc/tor/torrc
+     root@debianbox:/home/netscape101# service tor restart
+     [ ok ] Stopping tor daemon...done.
+     [ ok ] Starting tor daemon...done.
+     root@debianbox:/home/netscape101# ls
+     root@debianbox:/home/netscape101# cd /var/lib/tor/hidden_service/
+     root@debianbox:/var/lib/tor/hidden_service# ls
+     hostname  private_key
+     root@debianbox:/var/lib/tor/hidden_service# cat hostname 
+     pyaxoanm3het7xax.onion
+     root@debianbox:/var/lib/tor/hidden_service# exit
+     exit
+     netscape101@debianbox:~$ ls
+     netscape101@debianbox:~$ mkdir foo
+     netscape101@debianbox:~$ ls
+     foo
+     netscape101@debianbox:~$ cd foo
+     netscape101@debianbox:~/foo$ ls
+     netscape101@debianbox:~/foo$ vim index.html
+
+     <!-- Put something like this in your index.html. The title is a joke btw. -->
+     <html>
+     <head>
+     <title>Silkroad 5.0</title>
+     </head>
+     <body>
+     Silkroad 5.0
+     </body>
+     </html>
+
+
+
+
+
+
+     netscape101@debianbox:~/foo$ python SimpleHTTPServer
+     python: can't open file 'SimpleHTTPServer': [Errno 2] No such file or directory
+     netscape101@debianbox:~/foo$ python -m SimpleHTTPServer
+     Serving HTTP on 0.0.0.0 port 8000 ...
+     192.168.122.1 - - [20/Mar/2015 14:33:30] "GET / HTTP/1.1" 200 -
+     192.168.122.1 - - [20/Mar/2015 14:33:30] code 404, message File not found
+     192.168.122.1 - - [20/Mar/2015 14:33:30] "GET /favicon.ico HTTP/1.1" 404 -
+     192.168.122.1 - - [20/Mar/2015 14:33:31] code 404, message File not found
+     192.168.122.1 - - [20/Mar/2015 14:33:31] "GET /favicon.ico HTTP/1.1" 404 -
+
+I accessed the page with http://192.168.122.74:8000 in Firefox.
+
+     127.0.0.1 - - [20/Mar/2015 14:34:31] "GET / HTTP/1.1" 200 -
+     127.0.0.1 - - [20/Mar/2015 14:34:33] code 404, message File not found
+     127.0.0.1 - - [20/Mar/2015 14:34:33] "GET /favicon.ico HTTP/1.1" 404 -
+     127.0.0.1 - - [20/Mar/2015 14:34:35] code 404, message File not found
+     127.0.0.1 - - [20/Mar/2015 14:34:35] "GET /favicon.ico HTTP/1.1" 404 -
+
+I accessed the page http://pyaxoanm3het7xax.onion in Tor Browser Bundle.
+
+Remember the config file, had this line: 
+     HiddenServicePort 80 127.0.0.1:8000
+
+It tells the HiddenService to listen on port 80. And it redirects any incoming traffic on the tor hidden service address pyaxoanm3het7xax.onion
+to port 8000 localhost.  Remember if you setup a Tor Hidden Service to only make your services listening on local host.
+
+
+You don't want this happening to you: 
+http://www.reddit.com/r/netsec/comments/2t21wl/use_search_by_fingerprint_to_uncloaks_ssh_servers
+https://www.shodan.io/search?query=0d%3A2c%3Ab5%3Aca%3A4f%3Ab6%3A31%3Aa8%3A9e%3A6b%3A1e%3Ac4%3A41%3Ad1%3Ac6%3A89
+
+Basically if you are running ssh on your tor hidden service and somebody runs nmap --script ssh-hostkey, and they search shodan.io for your ssh key fingerprint, then they can get the IP address of the 
+machine. Obviously won't work in all cases.

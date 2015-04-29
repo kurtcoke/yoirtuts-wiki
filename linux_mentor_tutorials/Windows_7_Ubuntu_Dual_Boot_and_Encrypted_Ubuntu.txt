@@ -1,0 +1,135 @@
+Windows 7 + Ubuntu Dual Boot and Encrypted Ubuntu / and /swap:
+
+http://crunchbang.org/forums/viewtopic.php?id=4299
+
+Follow this guide that I posted earlier. The procedure will work slightly different:
+
+Btw Install Windows 7 First. 
+
+Your hardrive layout will look like this.
+
+# This is what my hardrive looks like (This is not a config file btw.)
+/dev/sda1 NTFS Windows 7 120GB
+/dev/sda2 ext2 /boot 600 MB
+/dev/sda3 swap /swap 8GB (The size you want to make your swap is up to you. There are different opinions on what your swapsize should be.)
+/dev/sda4 ext4 / 180GB (Rest of The Disk)
+
+Make sure /dev/sda2 (Boot is bootable. We are not going to use the Windows Boot loader.)
+
+# fdisk /dev/sda
+
+fdisk> a 
+Select which disk
+fdisk> 2
+
+fdisk> p
+* /dev/sda2 
+
+Create Swap Type:
+
+fdisk> t 
+
+Select a partition> 3
+Select type> 82
+
+fdisk >p 
+
+/dev/sda3 Linux-Swap
+
+Write changes to disk with fdisk
+fdisk> w
+Quit
+fdisk > q
+
+Make your boot drive ext2 format:
+
+# mkfs.ext2 /dev/sda2
+
+Install cryptsetup
+
+# apt-get install cryptsetup
+
+Prepare / for encryption:
+
+# cryptsetup -c aes-xts-plain -s 512 -h ripemd160 luksFormat /dev/sda4
+Type "YES" in CAPITAL LETTERS HERE!!!
+# cryptsetup luksOpen /dev/sda4 sda4crypt
+
+# mkfs.ext4 /dev/mapper/sda4crypt
+
+# cryptsetup -c aes-xts-plain -s 512 -h ripemd160 luksFormat /dev/sda3
+Type "YES" in CAPITAL LETTERS HERE!!!
+# cryptsetup luksOpen /dev/sda3 sda3crypt
+# mkswap /dev/mapper/sda3crypt
+
+
+Follow the installer but specify your disks manually:
+
+/dev/mapper/sda3crypt   SWAP (was automatically chosen by installer)
+/dev/mapper/sda4crypt   /
+/dev/sda2               /boot
+
+After installation has finished don't reboot yet. System won't be able to boot without final steps:
+
+# mount /dev/mapper/sda4crypt /mnt
+
+# mount /dev/sda2 /mnt/boot
+
+# mount -o bind /dev/ /mnt/dev/
+
+# cp /etc/resolv.conf /mnt/etc/resolv.conf
+
+# chroot /mnt
+
+The following step , is optional but I like to do it because it will remind you that you are working in a chroot:
+
+# export PS1="(chroot) $PS1"
+
+chroot) # mount -t proc proc /proc
+
+chroot) # mount -t sysfs sys /sys
+
+chroot) # apt-get update
+
+chroot) # apt-get install cryptsetup
+
+Now edit /etc/crypttab to be able to mount encrypted partitions:
+Find UUID's:
+
+# ls -la /dev/disk/by-uuid/ | grep sda
+You will add the number next to sda3 and sda4 in /etc/crypttab. These are the UUID's of the encrypted partitions 
+and will allow them to be mounted and unlocked at boot.
+
+# vi /etc/crypttab
+
+
+
+#/etc/crypttab will look something like this:
+# Where xxxxx is the number you got from running: ls -la /dev/disk/by-uuid/ | grep sda3
+sda3crypt UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx none swap,tries=3,check=vol_id
+sda4crypt UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx none luks,tries=3,check=vol_id
+
+
+Now run this:
+
+# update-grub
+
+# update-initramfs -u -k all
+
+
+Exit chroot:
+# exit 
+
+# cd 
+# umount /mnt/boot
+
+
+
+
+
+
+
+
+
+
+
